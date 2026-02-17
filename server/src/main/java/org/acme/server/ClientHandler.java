@@ -2,7 +2,14 @@ package org.acme.server;
 
 import org.acme.entity.Slot;
 import org.acme.entity.Reservation;
-import org.acme.protocol.*;
+import org.acme.protocol.Command;
+import org.acme.protocol.Response;
+import org.acme.protocol.ServerResponse;
+import org.acme.protocol.ListCommand;
+import org.acme.protocol.ReserveCommand;
+import org.acme.protocol.CancelCommand;
+import org.acme.protocol.MyCommand;
+import org.acme.protocol.ExitCommand;
 import org.acme.services.SlotService;
 import org.acme.services.ReservationService;
 
