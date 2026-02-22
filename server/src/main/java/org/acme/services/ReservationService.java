@@ -7,6 +7,7 @@ import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import org.acme.entity.Reservation;
 import org.acme.entity.Slot;
+import org.acme.entity.User;
 
 import java.util.List;
 
@@ -22,7 +23,7 @@ public class ReservationService {
     EntityManager em;
 
     @Transactional
-    public ReservationResult createReservation(String clientId, Long slotId) {
+    public ReservationResult createReservation(User user, Long slotId) {
         Slot slot = em.find(Slot.class, slotId, LockModeType.PESSIMISTIC_WRITE);
         if (slot == null) {
             return ReservationResult.SLOT_NOT_FOUND;
@@ -36,25 +37,25 @@ public class ReservationService {
             return ReservationResult.SLOT_ALREADY_RESERVED;
         }
 
-        Reservation reservation = new Reservation(clientId, slotId);
+        Reservation reservation = new Reservation(user, slotId);
         em.persist(reservation);
         return ReservationResult.SUCCESS;
     }
 
     @Transactional
-    public List<Reservation> getAllReservationsByClient(String clientId) {
-        return em.createQuery("select r from Reservation r where r.clientId = :clientId", Reservation.class)
-                .setParameter("clientId", clientId)
+    public List<Reservation> getAllReservationsByUser(User user) {
+        return em.createQuery("select r from Reservation r where r.user = :user", Reservation.class)
+                .setParameter("user", user)
                 .getResultList();
     }
 
     @Transactional
-    public boolean cancelReservation(Long reservationId, String clientId) {
+    public boolean cancelReservation(Long reservationId, User user) {
         Reservation reservation = em.find(Reservation.class, reservationId);
         if(reservation == null) {
             return false;
         }
-        if (!reservation.getClientId().equals(clientId)) {
+        if (!reservation.getUser().getId().equals(user.getId())) {
             return false;
         }
         em.remove(reservation);

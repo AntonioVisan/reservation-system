@@ -7,6 +7,7 @@ import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
 import org.acme.services.SlotService;
 import org.acme.services.ReservationService;
+import org.acme.services.UserService;
 
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -23,6 +24,8 @@ public class Server {
     private SlotService slotService;
     @Inject
     private ReservationService reservationService;
+    @Inject
+    private UserService userService;
 
     void onStart(@Observes StartupEvent ev) {
         executor = Executors.newFixedThreadPool(MAX_THREADS);
@@ -36,7 +39,7 @@ public class Server {
         try(ServerSocket socket = new ServerSocket(9090)) {
             while(true) {
                 Socket client = socket.accept();
-                executor.submit(new ClientHandler(client, reservationService, slotService));
+                executor.submit(new ClientHandler(client, reservationService, slotService, userService));
             }
         } catch (IOException e) {
             throw new RuntimeException(e);

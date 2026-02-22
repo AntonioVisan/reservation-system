@@ -1,33 +1,32 @@
 package org.acme.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 
 @Entity
 public class Reservation {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private String clientId;
+
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+
     private Long slotId;
 
-    public Reservation(String clientId, Long slotId) {
-        this.clientId = clientId;
+    public Reservation(User user, Long slotId) {
+        this.user = user;
         this.slotId = slotId;
     }
 
-    public Reservation() {
+    public Reservation() { }
 
+    public User getUser() {
+        return user;
     }
 
-    public String getClientId() {
-        return clientId;
-    }
-
-    public void setClientId(String clientId) {
-        this.clientId = clientId;
+    public void setUser(User user) {
+        this.user = user;
     }
 
     public Long getSlotId() {
@@ -46,7 +45,7 @@ public class Reservation {
     public String toString() {
         return "Reservation{" +
                 "id=" + id +
-                ", clientId='" +clientId+ '\'' +
-                ", slotId='" +slotId+ '\'' + '}';
+                ", username=" + (user != null ? user.getUsername() : null) +
+                ", slotId=" + slotId + '}';
     }
 }

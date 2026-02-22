@@ -2,8 +2,8 @@ package org.acme.server;
 
 import org.acme.entity.Slot;
 import org.acme.entity.Reservation;
+import org.acme.entity.User;
 import org.acme.protocol.Command;
-import org.acme.protocol.Response;
 import org.acme.protocol.ServerResponse;
 import org.acme.protocol.ListCommand;
 import org.acme.protocol.ReserveCommand;
@@ -12,25 +12,27 @@ import org.acme.protocol.MyCommand;
 import org.acme.protocol.ExitCommand;
 import org.acme.services.SlotService;
 import org.acme.services.ReservationService;
+import org.acme.services.UserService;
 
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.util.List;
-import java.util.UUID;
 
 public class ClientHandler implements Runnable {
 
     private final Socket socket;
     private final ReservationService reservationService;
     private final SlotService slotService;
-    private final String clientId;
+    private final UserService userService;
+    private final User user;
 
-    public ClientHandler(Socket socket, ReservationService reservationService, SlotService slotService) {
+    public ClientHandler(Socket socket, ReservationService reservationService, SlotService slotService, UserService userService) {
         this.socket = socket;
         this.reservationService = reservationService;
         this.slotService = slotService;
-        this.clientId = UUID.randomUUID().toString();
+        this.userService = userService;
+        this.user = userService.createTemporaryUser();
     }
 
     @Override
@@ -43,7 +45,7 @@ public class ClientHandler implements Runnable {
                 System.out.println("Waiting for command...");
                 Command command = (Command) in.readObject();
                 System.out.println("Received command: " + command.getClass());
-                Response response = handleCommand(command);
+                ServerResponse response = handleCommand(command);
                 out.writeObject(response);
                 out.flush();
 
@@ -56,7 +58,7 @@ public class ClientHandler implements Runnable {
         }
     }
 
-    private Response handleCommand(Command command) {
+    private ServerResponse handleCommand(Command command) {
         if (command instanceof ListCommand) {
             List<Slot> slotList = slotService.getAvailableSlots();
             if (slotList.isEmpty())
@@ -72,7 +74,7 @@ public class ClientHandler implements Runnable {
             if (slotId == null) {
                 return new ServerResponse("Failed to create reservation because slot id is invalid.", false);
             }
-            ReservationService.ReservationResult result = reservationService.createReservation(clientId, slotId);
+            ReservationService.ReservationResult result = reservationService.createReservation(user, slotId);
             return switch (result) {
                 case SUCCESS -> new ServerResponse("Reservation created successfully.", true);
                 case SLOT_NOT_FOUND -> new ServerResponse("Failed to create reservation because slot was not found.", false);
@@ -80,13 +82,13 @@ public class ClientHandler implements Runnable {
             };
         } else if (command instanceof CancelCommand cancelCommand) {
             Long reservationId = cancelCommand.getReservationId();
-            boolean success = reservationService.cancelReservation(reservationId, clientId);
+            boolean success = reservationService.cancelReservation(reservationId, user);
             if (!success) {
                 return new ServerResponse("Failed to cancel reservation. It may not exist or does not belong to you.", false);
             }
             return new ServerResponse("Reservation cancelled successfully.", true);
         } else if (command instanceof MyCommand) {
-            List<Reservation> reservations = reservationService.getAllReservationsByClient(clientId);
+            List<Reservation> reservations = reservationService.getAllReservationsByUser(user);
             if (reservations.isEmpty()) {
                 return new ServerResponse("You have no reservations.", false);
             }
